@@ -1,4 +1,4 @@
-name: Build and Release
+name: Auto Version & Release
 
 on:
   push:
@@ -6,8 +6,49 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  # ───── Bump version on every push to master (skip bot commits) ─────
+  bump:
+    if: >
+      !startsWith(github.event.head_commit.message, 'chore(release)')
+      && (startsWith(github.ref, 'refs/heads/master') || startsWith(github.ref, 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version and update changelog
+        id: bump
+        run: |
+          OUT=$(python3 .github/scripts/bump-version.py)
+          echo "$OUT"
+          NEXT=$(echo "$OUT" | grep -oP 'NEXT=\K.*')
+          echo "NEXT=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "TAG=v$NEXT" >> "$GITHUB_OUTPUT"
+
+      - name: Commit, tag, and push
+        run: |
+          NEXT="${{ steps.bump.outputs.NEXT }}"
+          git add -A
+          git commit -m "chore(release): v$NEXT"
+          git tag "v$NEXT"
+          git push origin master
+          git push origin "v$NEXT"
+
+  # ───── Build (tag pushes & workflow_dispatch) ─────
   build:
+    needs: [bump]
+    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -29,44 +70,11 @@ jobs:
           name: EldenRingHandlerManager
           path: bin/Release/net6.0-windows/
 
-  # Dev build: refreshed on every push to master/main.
-  dev-release:
-    needs: build
-    if: startsWith(github.ref, 'refs/heads/master') || startsWith(github.ref, 'refs/heads/main')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Download artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: EldenRingHandlerManager
-          path: dist
-
-      - name: Zip build
-        run: |
-          cd dist
-          zip -r EldenRingHandlerManager.zip .
-
-      - name: Create/Update Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release delete "latest" --yes --repo "${{ github.repository }}" 2>/dev/null || true
-          gh release create "latest" "dist/EldenRingHandlerManager.zip" \
-            --repo "${{ github.repository }}" \
-            --title "Latest build" \
-            --notes "Auto-built from the latest commit."
-
-  # Versioned release: published when a tag like v1.0.0 is pushed.
-  versioned-release:
-    needs: build
+  # ───── Versioned release (tag pushes only) ─────
+  release:
+    needs: [build]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -82,12 +90,10 @@ jobs:
           zip -r EldenRingHandlerManager.zip .
 
       - name: Extract release notes
-        id: notes
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           chmod +x .github/scripts/get-release-notes.sh
           .github/scripts/get-release-notes.sh "$VERSION" CHANGELOG.md > RELEASE_NOTES.md
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         env:
