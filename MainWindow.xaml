@@ -128,6 +128,12 @@
                             <TextBlock x:Name="EngineBadgeText" Text="ME3" FontSize="12" FontWeight="SemiBold" Foreground="White"/>
                         </StackPanel>
                     </Border>
+                    <Button x:Name="UpdateBtn" Content="Check for updates" Style="{StaticResource GhostButton}"
+                            Padding="10,6" Margin="0,10,0,0" Click="CheckForUpdate_Click">
+                        <Button.ToolTip>Check for a new release on GitHub</Button.ToolTip>
+                    </Button>
+                    <TextBlock x:Name="UpdateStatusText" Text="" Foreground="{StaticResource DimTextBrush}"
+                               FontSize="9.5" TextWrapping="Wrap" Margin="2,6,0,0"/>
                     <TextBlock Text="Only touches the Nucleus handlers folder. No game path needed."
                                Foreground="#66FFFFFF" FontSize="9.5" TextWrapping="Wrap" Margin="2,10,0,0"/>
                 </StackPanel>

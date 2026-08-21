@@ -17,6 +17,7 @@ namespace ERHandlerManager
         private readonly DeployService _deploy;
         private readonly ObservableCollection<ModEntry> _mods = new();
         private EngineType _activeEngineTab = EngineType.ME2;
+        private bool _updating;
 
         public MainWindow()
         {
@@ -35,6 +36,7 @@ namespace ERHandlerManager
             ChkAutoConfig.IsChecked = _settings.Settings.AutoConfig;
             RefreshUI();
             LoadLastProfile();
+            _ = CheckForUpdateOnStartup();
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -629,6 +631,88 @@ namespace ERHandlerManager
                 c.Children.Add(cc);
             }
             return c;
+        }
+
+        // ===================== Updates =====================
+
+        private async Task CheckForUpdateOnStartup()
+        {
+            var info = await UpdateService.CheckForUpdateAsync();
+            if (!info.HasUpdate) return; // silent when up to date
+            await Dispatcher.InvokeAsync(async () => await OfferAndApplyUpdate(info, manual: false));
+        }
+
+        private async void CheckForUpdate_Click(object sender, RoutedEventArgs e)
+        {
+            if (_updating) return;
+            UpdateBtn.IsEnabled = false;
+            UpdateStatusText.Text = "Checking for updates...";
+            try
+            {
+                var info = await UpdateService.CheckForUpdateAsync();
+                if (info.HasUpdate)
+                {
+                    await OfferAndApplyUpdate(info, manual: true);
+                }
+                else if (info.LatestVersion == info.CurrentVersion && info.LatestVersion != "")
+                {
+                    UpdateStatusText.Text = $"Up to date (v{info.CurrentVersion})";
+                    MessageBox.Show($"You're running the latest version (v{info.CurrentVersion}).",
+                        "Up to date", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    UpdateStatusText.Text = "";
+                    MessageBox.Show("Couldn't reach GitHub to check for updates. Check your connection and try again.",
+                        "Check failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+            finally
+            {
+                UpdateBtn.IsEnabled = true;
+            }
+        }
+
+        private async Task OfferAndApplyUpdate(UpdateInfo info, bool manual)
+        {
+            if (_updating) return;
+            _updating = true;
+            try
+            {
+                var result = MessageBox.Show(
+                    $"A new version (v{info.LatestVersion}) is available — you're on v{info.CurrentVersion}.\n\n" +
+                    "Download and install it now? The app will restart automatically.",
+                    "Update available", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (result != MessageBoxResult.Yes)
+                {
+                    if (manual) UpdateStatusText.Text = $"Update v{info.LatestVersion} available.";
+                    return;
+                }
+
+                UpdateStatusText.Text = "Downloading update...";
+                UpdateBtn.IsEnabled = false;
+
+                var progressWindow = new UpdateProgressWindow(this);
+                progressWindow.Show();
+
+                try
+                {
+                    await Task.Run(() => UpdateService.DownloadAndApplyAsync(info,
+                        new UpdateProgressWindow.Progress(progressWindow)));
+                    Application.Current.Shutdown();
+                }
+                catch (Exception ex)
+                {
+                    progressWindow.Close();
+                    UpdateStatusText.Text = "";
+                    MessageBox.Show(ex.Message, "Update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            finally
+            {
+                _updating = false;
+                UpdateBtn.IsEnabled = true;
+            }
         }
 
         // ===================== Backup =====================
