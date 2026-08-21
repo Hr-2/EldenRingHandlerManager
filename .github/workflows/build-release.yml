@@ -46,7 +46,7 @@ jobs:
       - name: Zip build
         run: |
           cd dist
-          powershell -Command "Compress-Archive -Path * -DestinationPath EldenRingHandlerManager.zip"
+          zip -r EldenRingHandlerManager.zip .
 
       - name: Create/Update Release
         env:
