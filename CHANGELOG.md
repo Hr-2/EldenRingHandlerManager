@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-08-21
+
+### Changed
+- Clean up README: remove dashes, use 'I' not 'We'
+
 ## [1.0.3] - 2026-08-21
 
 ### Changed
