@@ -115,5 +115,5 @@ jobs:
         run: |
           gh release create "v${{ needs.bump.outputs.next }}" "dist/EldenRingHandlerManager.zip" \
             --repo "${{ github.repository }}" \
-            --title "Elden Ring Handler Manager v${{ needs.bump.outputs.next }}" \
+            --title "v${{ needs.bump.outputs.next }}" \
             --notes-file RELEASE_NOTES.md
