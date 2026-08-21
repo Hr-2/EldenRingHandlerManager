@@ -104,6 +104,13 @@ namespace ERHandlerManager
                 MessageBox.Show("Please enter a mod name.", "Missing name", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+            if (!ERHandlerManager.Services.ModDetector.IsNameSafe(name))
+            {
+                MessageBox.Show("The name contains characters that aren't allowed (such as \", \\ or /). " +
+                                "Use letters, numbers, spaces, and - _ . ( ) only.",
+                    "Invalid name", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
             if (!File.Exists(source) && !Directory.Exists(source))
             {
                 MessageBox.Show("Source path does not exist.", "Bad path", MessageBoxButton.OK, MessageBoxImage.Warning);

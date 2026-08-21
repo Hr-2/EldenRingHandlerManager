@@ -56,12 +56,14 @@ namespace ERHandlerManager.Services
                 var enabledMods = _settings.Settings.Mods.Where(m => m.Enabled && Compatible(m, engine)).ToList();
 
                 // Pre-compute total bytes to copy so we can show a real %.
+                // Totals only count what will actually be copied (disabled
+                // child folders are skipped), so the bar tracks reality.
                 long totalBytes = 0;
-                if (Directory.Exists(Path.Combine(baseHandler, gameName)))
-                    totalBytes += DirBytes(Path.Combine(baseHandler, gameName));
+                var baseFolderPath = Path.Combine(baseHandler, gameName);
+                if (Directory.Exists(baseFolderPath))
+                    totalBytes += DirBytes(baseFolderPath);
                 foreach (var mod in enabledMods)
-                    if (Directory.Exists(mod.SourcePath))
-                        totalBytes += DirBytes(mod.SourcePath);
+                    totalBytes += ModBytes(mod);
                 if (totalBytes <= 0) totalBytes = 1;
 
                 long doneBytes = 0;
@@ -161,6 +163,36 @@ namespace ERHandlerManager.Services
                     n += DirBytes(d);
             }
             catch { }
+            return n;
+        }
+
+        /// <summary>
+        /// Total bytes that will actually be copied for a mod, mirroring the
+        /// CopyModTree logic (disabled children are skipped). DLL mods count
+        /// the single file or top-level dlls.
+        /// </summary>
+        private static long ModBytes(ModEntry mod)
+        {
+            long n = 0;
+            if (mod.Kind == ModKind.Dll)
+            {
+                if (File.Exists(mod.SourcePath)) return new FileInfo(mod.SourcePath).Length;
+                if (Directory.Exists(mod.SourcePath))
+                    foreach (var f in Directory.GetFiles(mod.SourcePath))
+                        n += new FileInfo(f).Length;
+                return n;
+            }
+            if (!Directory.Exists(mod.SourcePath)) return 0;
+
+            foreach (var f in Directory.GetFiles(mod.SourcePath))
+                n += new FileInfo(f).Length;
+            foreach (var dir in Directory.GetDirectories(mod.SourcePath))
+            {
+                var name = Path.GetFileName(dir);
+                var child = mod.Children.FirstOrDefault(c => c.Kind == ModKind.Folder && c.Name == name);
+                if (child != null && !child.Enabled) continue; // disabled, skipped
+                n += child != null && child.Children.Count > 0 ? ModBytes(child) : DirBytes(dir);
+            }
             return n;
         }
 

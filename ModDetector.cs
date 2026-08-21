@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using ERHandlerManager.Models;
 
 namespace ERHandlerManager.Services
@@ -158,6 +159,31 @@ namespace ERHandlerManager.Services
         public static int CountDlls(ModEntry mod)
         {
             return GetDllFiles(mod).Count();
+        }
+
+        /// <summary>
+        /// Returns a safe name for use as a folder and in the generated config.
+        /// Keeps letters, digits, spaces and a few harmless characters; anything
+        /// else (quotes, slashes, etc.) is removed.
+        /// </summary>
+        public static string SanitizeName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Unnamed Mod";
+            var sb = new StringBuilder();
+            foreach (var c in name)
+            {
+                if (char.IsLetterOrDigit(c) || c == ' ' || c == '-' || c == '_' ||
+                    c == '.' || c == '(' || c == ')')
+                    sb.Append(c);
+            }
+            var result = sb.ToString().Trim();
+            return string.IsNullOrWhiteSpace(result) ? "Unnamed Mod" : result;
+        }
+
+        /// <summary>True when the name is already safe (no changes needed).</summary>
+        public static bool IsNameSafe(string name)
+        {
+            return !string.IsNullOrWhiteSpace(name) && name == SanitizeName(name);
         }
     }
 }

@@ -42,7 +42,11 @@ namespace ERHandlerManager.Services
                 Directory.CreateDirectory(AppDir);
                 var json = System.Text.Json.JsonSerializer.Serialize(Settings,
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(SettingsPath, json);
+                // Write to a temp file first, then move into place, so a crash
+                // mid-save can't corrupt the settings file.
+                var tmp = SettingsPath + ".tmp";
+                File.WriteAllText(tmp, json);
+                File.Move(tmp, SettingsPath, true);
             }
             catch (Exception ex)
             {

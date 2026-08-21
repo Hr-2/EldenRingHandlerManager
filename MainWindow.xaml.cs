@@ -35,6 +35,7 @@ namespace ERHandlerManager
             ChkAutoSave.IsChecked = _settings.Settings.AutoSaveMods;
             ChkAutoConfig.IsChecked = _settings.Settings.AutoConfig;
             RefreshUI();
+            RestoreUiState();
             LoadLastProfile();
             _ = CheckForUpdateOnStartup();
         }
@@ -143,14 +144,45 @@ namespace ERHandlerManager
         private void Nav_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not System.Windows.Controls.Primitives.ToggleButton btn) return;
-            var tag = (string)btn.Tag;
+            ShowPage((string)btn.Tag);
+        }
 
+        private void ShowPage(string tag)
+        {
             foreach (var nav in new[] { NavMods, NavDeploy, NavHandlers })
-                nav.IsChecked = nav == btn;
+                nav.IsChecked = nav.Tag?.ToString() == tag;
 
             PageMods.Visibility = tag == "Mods" ? Visibility.Visible : Visibility.Collapsed;
             PageDeploy.Visibility = tag == "Deploy" ? Visibility.Visible : Visibility.Collapsed;
             PageHandlers.Visibility = tag == "Handlers" ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>Restores the last used page, engine tab and window size.</summary>
+        private void RestoreUiState()
+        {
+            var s = _settings.Settings;
+            if (s.WindowWidth > 0 && s.WindowHeight > 0)
+            {
+                Width = s.WindowWidth;
+                Height = s.WindowHeight;
+            }
+            if (s.WindowMaximized) WindowState = WindowState.Maximized;
+
+            if (s.LastEngineTab == "ME3")
+            {
+                _activeEngineTab = EngineType.ME3;
+                TabME3.IsChecked = true;
+                TabME2.IsChecked = false;
+            }
+            else
+            {
+                _activeEngineTab = EngineType.ME2;
+                TabME2.IsChecked = true;
+                TabME3.IsChecked = false;
+            }
+            RebuildVisibleMods();
+
+            ShowPage(string.IsNullOrEmpty(s.LastPage) ? "Mods" : s.LastPage);
         }
 
         // ===================== Mod toggle =====================
@@ -249,6 +281,11 @@ namespace ERHandlerManager
             s.Me2BaseHandler = TxtMe2Base.Text.Trim();
             s.Me3BaseHandler = TxtMe3Base.Text.Trim();
             s.Mods = _mods.ToList();
+            s.LastPage = NavMods.IsChecked == true ? "Mods" : (NavDeploy.IsChecked == true ? "Deploy" : "Handlers");
+            s.LastEngineTab = _activeEngineTab == EngineType.ME2 ? "ME2" : "ME3";
+            s.WindowWidth = (int)ActualWidth;
+            s.WindowHeight = (int)ActualHeight;
+            s.WindowMaximized = WindowState == WindowState.Maximized;
         }
 
         /// <summary>Saves settings and, if auto-save is on, updates the active profile.</summary>
@@ -371,7 +408,8 @@ namespace ERHandlerManager
 
             foreach (var path in files)
             {
-                var entry = ModDetector.BuildTree(path);
+                var entry = ModDetector.BuildTree(path,
+                    ModDetector.SanitizeName(Path.GetFileNameWithoutExtension(path)));
                 entry.Engine = _activeEngineTab;
                 CascadeEngine(entry);
                 _mods.Add(entry);
@@ -419,6 +457,20 @@ namespace ERHandlerManager
 
         private async void DeployWithEngine(EngineType engine)
         {
+            if (!_settings.Settings.SkipDeployConfirm)
+            {
+                var dlg = new ConfirmDialog("Confirm deploy",
+                    $"This will overwrite the current \"Elden Ring\" handler in your Nucleus handlers folder " +
+                    $"and copy your enabled {engine} mods into it.\n\nContinue?");
+                dlg.Owner = this;
+                if (dlg.ShowDialog() != true) return;
+                if (dlg.DontAskAgain)
+                {
+                    _settings.Settings.SkipDeployConfirm = true;
+                    _settings.Save();
+                }
+            }
+
             DeployProgress.Value = 0;
             DeployProgressText.Text = "";
             LogBox.Clear();
@@ -713,6 +765,20 @@ namespace ERHandlerManager
                 _updating = false;
                 UpdateBtn.IsEnabled = true;
             }
+        }
+
+        // ===================== Open deployed folder =====================
+
+        private void OpenDeployed_Click(object sender, RoutedEventArgs e)
+        {
+            var folder = Path.Combine(TxtHandlersDir.Text.Trim(), "Elden Ring");
+            var modEngine = Path.Combine(folder, "ModEngine");
+            var target = Directory.Exists(modEngine) ? modEngine : (Directory.Exists(folder) ? folder : "");
+            if (target.Length > 0)
+                System.Diagnostics.Process.Start("explorer.exe", target);
+            else
+                MessageBox.Show("No deployed handler found yet. Deploy first, or check the handlers folder path.",
+                    "Not deployed", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         // ===================== Backup =====================

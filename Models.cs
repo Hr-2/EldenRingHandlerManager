@@ -151,5 +151,11 @@ namespace ERHandlerManager.Models
         public string LastProfile { get; set; } = "";
         public bool AutoSaveMods { get; set; } = true;
         public bool AutoConfig { get; set; } = true;
+        public string LastPage { get; set; } = "Mods";
+        public string LastEngineTab { get; set; } = "ME2";
+        public int WindowWidth { get; set; }
+        public int WindowHeight { get; set; }
+        public bool WindowMaximized { get; set; }
+        public bool SkipDeployConfirm { get; set; }
     }
 }

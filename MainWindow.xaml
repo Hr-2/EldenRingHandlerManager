@@ -529,6 +529,9 @@
                                 </Style>
                             </Button.Style>
                         </Button>
+                        <Button x:Name="OpenDeployedBtn" Content="Open folder" Style="{StaticResource GhostButton}"
+                                FontSize="12" Padding="14,8" Margin="0,0,8,0"
+                                ToolTip="Open the deployed ModEngine folder in Explorer" Click="OpenDeployed_Click"/>
                         <Button x:Name="DeployME2Btn" Content="Deploy ME2" Style="{StaticResource DangerButton}" FontSize="12" Padding="16,8"
                                 Margin="0,0,8,0" Click="DeployME2_Click"/>
                         <Button x:Name="DeployME3Btn" Content="Deploy ME3" Style="{StaticResource PrimaryButton}" FontSize="12" Padding="16,8" Click="DeployME3_Click"/>
