@@ -86,10 +86,8 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           chmod +x .github/scripts/get-release-notes.sh
-          NOTES="$(.github/scripts/get-release-notes.sh "$VERSION" CHANGELOG.md)"
-          echo "NOTES<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$NOTES" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          .github/scripts/get-release-notes.sh "$VERSION" CHANGELOG.md > RELEASE_NOTES.md
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         env:
@@ -98,4 +96,4 @@ jobs:
           gh release create "$GITHUB_REF_NAME" "dist/EldenRingHandlerManager.zip" \
             --repo "${{ github.repository }}" \
             --title "Elden Ring Handler Manager $GITHUB_REF_NAME" \
-            --notes "${{ steps.notes.outputs.NOTES }}"
+            --notes-file RELEASE_NOTES.md
