@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-21
+
+### Changed
+- Auto version bump workflow, improved README
+- Add AI disclosure note to README
+- Bump upload-artifact to latest v7.0.1
+
 ## [1.0.0] - 2026-08-21
 
 ### Added
