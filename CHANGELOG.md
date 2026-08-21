@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-08-21
+
+### Changed
+- Restructure workflow: bump + build + release in one run
+
 ## [1.0.1] - 2026-08-21
 
 ### Changed
