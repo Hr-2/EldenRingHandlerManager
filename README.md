@@ -1,17 +1,17 @@
 # Elden Ring Handler Manager
 
-A Windows tool for managing your Elden Ring [Nucleus Co-Op](https://splitscreen.me) setup across two mod engines — **Mod Engine 2** (legacy, for mods like Elden Vins) and **Mod Engine 3** (modern).
+A Windows tool for managing your Elden Ring [Nucleus Co-Op](https://splitscreen.me) setup across two mod engines — **Mod Engine 2** (legacy, for mods like Elden Vins) and **Mod Engine 3**.
 
 It builds and maintains the Nucleus handler folder for you, so you don't have to hand-edit configs or copy mod files around manually.
 
 ## ✨ Features
 
-- **Two engine tabs (ME2 / ME3)** — keep your mods organized per engine. Enabling a mod on one tab auto-disables the other tab's mods, so you can never accidentally mix engines.
+- **Two engine tabs (ME2 / ME3)** — keep your mods organized per engine. Enabling a mod on one tab auto-disables the other tab's mods.
 - **Drag & drop mods** — drop folders or `.dll` files onto a tab. They're auto-detected (folder mod vs DLL mod) and named for you.
 - **Mod tree** — expand mods to inspect their DLLs and sub-folders, toggle individual parts, and mark folders as real mods with a simple star.
 - **Profiles** — save, load, and delete named mod configurations. Optional auto-save keeps your active profile in sync as you change mods.
 - **One-click Deploy** — pick **ME2** or **ME3**; the app copies the base handler, drops in your enabled mods, and writes `config_eldenring.toml` (ME2) or `me3.toml` (ME3).
-- **Live progress** — large mods (7GB+) deploy in the background with a progress bar, byte counter, and a **Cancel** button.
+- **Live progress** — progress bar, byte counter, and a **Cancel** button.
 - **Custom handler `.js`** — big mods (like Elden Vins) that ship their own handler can override the deployed one automatically.
 - **Manual backup** — save a copy of the currently deployed handler whenever you want.
 
