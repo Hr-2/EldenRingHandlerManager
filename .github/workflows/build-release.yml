@@ -23,7 +23,7 @@ jobs:
         run: dotnet build EldenRingHandlerManager.csproj -c Release --no-restore
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: EldenRingHandlerManager
           path: bin/Release/net6.0-windows/
