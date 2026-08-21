@@ -85,7 +85,7 @@ namespace ERHandlerManager.Services
                     if (Directory.Exists(curFolder))
                         Directory.Delete(curFolder, true);
                     CopyDirectoryProgress(baseFolder, curFolder, ref doneBytes, totalBytes,
-                        progress ?? ((_, _, _, _) => { }), ct);
+                        progress, ct);
                     result.Log.Add($"Handler folder: {gameName}\\ (from base {engine} template)");
                 }
                 else
@@ -114,9 +114,9 @@ namespace ERHandlerManager.Services
                     progress?.Invoke($"Deploying {mod.Name}...", doneBytes * 100.0 / totalBytes, doneBytes, totalBytes);
                     ct?.ThrowIfCancellationRequested();
                     if (engine == EngineType.ME2)
-                        DeployModME2(mod, modEngineDir, result, ref doneBytes, totalBytes, progress ?? ((_, _, _, _) => { }), ct);
+                        DeployModME2(mod, modEngineDir, result, ref doneBytes, totalBytes, progress, ct);
                     else
-                        DeployModME3(mod, modEngineDir, result, ref doneBytes, totalBytes, progress ?? ((_, _, _, _) => { }), ct);
+                        DeployModME3(mod, modEngineDir, result, ref doneBytes, totalBytes, progress, ct);
                 }
 
                 // --- 4. Write config ---
@@ -164,8 +164,7 @@ namespace ERHandlerManager.Services
             return n;
         }
 
-        private static void CopyDirectoryProgress(string source, string dest,
-            ref long doneBytes, long totalBytes, DeployProgress report, CancellationToken? ct = null)
+        private static void CopyDirectoryProgress(string source, string dest, ref long doneBytes, long totalBytes, DeployProgress? report, CancellationToken? ct = null)
         {
             ct?.ThrowIfCancellationRequested();
             Directory.CreateDirectory(dest);
@@ -192,7 +191,7 @@ namespace ERHandlerManager.Services
 
         // ---------- ME2 ----------
         private void DeployModME2(ModEntry mod, string modEngineDir, DeployResult result,
-            ref long doneBytes, long totalBytes, DeployProgress report, CancellationToken? ct = null)
+            ref long doneBytes, long totalBytes, DeployProgress? report, CancellationToken? ct = null)
         {
             ct?.ThrowIfCancellationRequested();
             if (mod.Kind == ModKind.Dll)
@@ -222,7 +221,7 @@ namespace ERHandlerManager.Services
 
         // ---------- ME3 ----------
         private void DeployModME3(ModEntry mod, string modEngineDir, DeployResult result,
-            ref long doneBytes, long totalBytes, DeployProgress report, CancellationToken? ct = null)
+            ref long doneBytes, long totalBytes, DeployProgress? report, CancellationToken? ct = null)
         {
             ct?.ThrowIfCancellationRequested();
             if (mod.Kind == ModKind.Dll)
@@ -461,7 +460,7 @@ namespace ERHandlerManager.Services
         }
 
         /// <summary>Copies a folder mod while skipping disabled child subfolders.</summary>
-        private static void CopyModTree(ModEntry mod, string dest, ref long doneBytes, long totalBytes, DeployProgress report, CancellationToken? ct = null)
+        private static void CopyModTree(ModEntry mod, string dest, ref long doneBytes, long totalBytes, DeployProgress? report, CancellationToken? ct = null)
         {
             ct?.ThrowIfCancellationRequested();
             Directory.CreateDirectory(dest);
