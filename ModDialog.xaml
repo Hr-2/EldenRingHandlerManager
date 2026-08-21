@@ -1,0 +1,150 @@
+<Window x:Class="ERHandlerManager.ModDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Title="Edit Mod"
+        Width="600" SizeToContent="Height"
+        MinWidth="500" MaxWidth="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgBrush}"
+        Foreground="#FFFFFFFF"
+        FontFamily="Segoe UI"
+        TextElement.FontSize="12">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            GlassFrameThickness="0"
+                            ResizeBorderThickness="0"
+                            CornerRadius="0"
+                            UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+    <Window.Resources>
+        <Style x:Key="SectionHeader" TargetType="StackPanel">
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="SectionBar" TargetType="Border">
+            <Setter Property="Width" Value="3"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="CornerRadius" Value="1.5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#FFFFFFFF"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+        <Style x:Key="HintText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10.5"/>
+            <Setter Property="Foreground" Value="{StaticResource DimTextBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+        <Style x:Key="BrowseButton" TargetType="Button" BasedOn="{StaticResource GhostButton}">
+            <Setter Property="Padding" Value="12,5"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="32"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
+                BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
+            <Grid MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <TextBlock Text="Edit Mod" Foreground="{StaticResource DimTextBrush}"
+                           FontSize="11" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                <Button Content="&#xE8BB;" Style="{StaticResource CaptionCloseButton}"
+                        HorizontalAlignment="Right" Click="Close_Click"/>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="1" Margin="20,18,20,18">
+            <!-- Basic info -->
+            <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,12">
+                <StackPanel>
+                    <StackPanel Style="{StaticResource SectionHeader}">
+                        <Border Style="{StaticResource SectionBar}"/>
+                        <TextBlock Text="Basic info" Style="{StaticResource SectionTitle}"/>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock Text="Name" Style="{StaticResource FieldLabel}"/>
+                        <TextBox x:Name="TxtName" Style="{StaticResource DarkTextBox}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Source -->
+            <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,12">
+                <StackPanel>
+                    <StackPanel Style="{StaticResource SectionHeader}">
+                        <Border Style="{StaticResource SectionBar}"/>
+                        <TextBlock Text="Source" Style="{StaticResource SectionTitle}"/>
+                    </StackPanel>
+
+                    <StackPanel>
+                        <TextBlock x:Name="SourceLabel" Text="Source folder" Style="{StaticResource FieldLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtSource" Style="{StaticResource DarkTextBox}"/>
+                            <Button Grid.Column="1" Content="Browse..." Style="{StaticResource BrowseButton}" Margin="8,0,0,0" Click="BrowseFolder_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Custom handler JS -->
+            <Border Background="{StaticResource PanelBrush}" BorderBrush="{StaticResource BorderBrush}"
+                    BorderThickness="1" CornerRadius="10" Padding="18" Margin="0,0,0,12">
+                <StackPanel>
+                    <StackPanel Style="{StaticResource SectionHeader}">
+                        <Border Width="3" Height="16" Background="{StaticResource WarningBrush}" CornerRadius="1.5" VerticalAlignment="Center"/>
+                        <TextBlock Text="Custom handler .js" Style="{StaticResource SectionTitle}"/>
+                        <Border Background="#33FFA500" CornerRadius="6" Padding="8,2"
+                                VerticalAlignment="Center" Margin="8,0,0,0">
+                            <TextBlock Text="optional" FontSize="9.5" Foreground="#FFFFC107" FontWeight="SemiBold"/>
+                        </Border>
+                        <CheckBox x:Name="ChkCustomJs" Style="{StaticResource ModToggle}"
+                                  VerticalAlignment="Center" Margin="12,0,0,0"
+                                  Checked="ChkCustomJs_Toggled" Unchecked="ChkCustomJs_Toggled"/>
+                    </StackPanel>
+                    <TextBlock Text="Some big mods (e.g. Elden Vins) ship their own handler .js. Set it here and it replaces the handler on Deploy when this mod is enabled."
+                               Style="{StaticResource HintText}"/>
+
+                    <StackPanel x:Name="CustomJsPanel" Margin="0,8,0,0">
+                        <TextBlock Text="Handler .js file path" Style="{StaticResource FieldLabel}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtHandlerJs" Style="{StaticResource DarkTextBox}" IsReadOnly="False"/>
+                            <Button Grid.Column="1" x:Name="BtnBrowseHandlerJs" Content="Browse..." Style="{StaticResource BrowseButton}" Margin="8,0,0,0" Click="BrowseHandlerJs_Click"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,2,0,0">
+                <Button Content="Cancel" Style="{StaticResource GhostButton}" IsCancel="True" Padding="20,7"/>
+                <Button x:Name="BtnSave" Content="Save" Style="{StaticResource PrimaryButton}" Padding="20,7" Margin="10,0,0,0" Click="Save_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>
