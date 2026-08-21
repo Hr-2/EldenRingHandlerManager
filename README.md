@@ -53,3 +53,10 @@ The repo has a GitHub Actions workflow (`.github/workflows/build-release.yml`) t
 ## License
 
 This project is provided as-is for personal use.
+
+## Credits / AI disclosure
+
+This project was built with the assistance of an AI coding assistant (opencode, powered by an LLM). It was designed, iterated on, and verified with human guidance — the AI wrote much of the code, and a person reviewed, tested, and directed every step.
+
+We're open about it: if you're wondering whether AI was used, yes it was. We'd rather say it plainly than have anyone guess.
+
