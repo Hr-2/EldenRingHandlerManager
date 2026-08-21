@@ -27,6 +27,8 @@ namespace ERHandlerManager
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            Title = $"Elden Ring Handler Manager v{AppInfo.Version}";
+            TitleText.Text = Title;
             _settings.AutoDetectIfMissing();
             LoadSettings();
             ChkAutoSave.IsChecked = _settings.Settings.AutoSaveMods;

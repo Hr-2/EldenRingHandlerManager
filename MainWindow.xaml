@@ -70,7 +70,7 @@
         <Border Grid.Row="0" Background="{StaticResource SidebarBrush}"
                 BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,0,0,1">
             <Grid MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-                <TextBlock Text="Elden Ring Handler Manager" Foreground="{StaticResource DimTextBrush}"
+                <TextBlock x:Name="TitleText" Text="Elden Ring Handler Manager" Foreground="{StaticResource DimTextBrush}"
                            FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="&#xE921;" Style="{StaticResource CaptionButton}" Click="Minimize_Click"/>
