@@ -10,9 +10,9 @@
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
     <RootNamespace>ERHandlerManager</RootNamespace>
     <AssemblyName>EldenRingHandlerManager</AssemblyName>
-    <Version>1.0.7</Version>
-    <FileVersion>1.0.7</FileVersion>
-    <InformationalVersion>1.0.7</InformationalVersion>
+    <Version>1.0.8</Version>
+    <FileVersion>1.0.8</FileVersion>
+    <InformationalVersion>1.0.8</InformationalVersion>
   </PropertyGroup>
 
 </Project>

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-08-21
+
+### Changed
+- Add quality-of-life improvements: safe names, accurate deploy progress, atomic settings save, UI state persistence, deploy confirm, open deployed folder
+
 ## [1.0.7] - 2026-08-21
 
 ### Changed
