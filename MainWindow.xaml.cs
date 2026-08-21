@@ -162,6 +162,27 @@ namespace ERHandlerManager
             }
         }
 
+        private void OpenModFolder_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.DataContext is ModEntry entry)
+            {
+                var path = entry.SourcePath;
+                if (Directory.Exists(path))
+                    System.Diagnostics.Process.Start("explorer.exe", path);
+                else if (File.Exists(path))
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{path}\"");
+            }
+        }
+
+        private void OpenHandlersFolder_Click(object sender, RoutedEventArgs e)
+        {
+            var dir = TxtHandlersDir.Text.Trim();
+            if (Directory.Exists(dir))
+                System.Diagnostics.Process.Start("explorer.exe", dir);
+            else
+                MessageBox.Show("Nucleus handlers folder not found.", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
         private void ModToggle_Changed(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement fe && fe.DataContext is ModEntry entry)
