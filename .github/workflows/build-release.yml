@@ -80,8 +80,8 @@ jobs:
 
   # ───── Publish versioned release ─────
   release:
-    needs: [build]
-    if: always() && needs.build.result == 'success'
+    needs: [bump, build]
+    if: always() && needs.bump.result == 'success' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
