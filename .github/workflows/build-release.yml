@@ -3,7 +3,6 @@ name: Auto Version & Release
 on:
   push:
     branches: [master, main]
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -16,6 +15,8 @@ jobs:
       !startsWith(github.event.head_commit.message, 'chore(release)')
       && (startsWith(github.ref, 'refs/heads/master') || startsWith(github.ref, 'refs/heads/main'))
     runs-on: ubuntu-latest
+    outputs:
+      next: ${{ steps.bump.outputs.NEXT }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -36,7 +37,7 @@ jobs:
           echo "NEXT=$NEXT" >> "$GITHUB_OUTPUT"
           echo "TAG=v$NEXT" >> "$GITHUB_OUTPUT"
 
-      - name: Commit, tag, and push
+      - name: Commit and push version bump + tag
         run: |
           NEXT="${{ steps.bump.outputs.NEXT }}"
           git add -A
@@ -45,13 +46,20 @@ jobs:
           git push origin master
           git push origin "v$NEXT"
 
-  # ───── Build (tag pushes & workflow_dispatch) ─────
+  # ───── Build the tagged version (runs in the same run) ─────
   build:
     needs: [bump]
-    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch')
+    if: always() && needs.bump.result == 'success'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Checkout bumped tag
+        run: |
+          git checkout "v${{ needs.bump.outputs.next }}"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -70,13 +78,20 @@ jobs:
           name: EldenRingHandlerManager
           path: bin/Release/net6.0-windows/
 
-  # ───── Versioned release (tag pushes only) ─────
+  # ───── Publish versioned release ─────
   release:
     needs: [build]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: always() && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Checkout bumped tag
+        run: |
+          git checkout "v${{ needs.bump.outputs.next }}"
 
       - name: Download artifact
         uses: actions/download-artifact@v8
@@ -91,15 +106,14 @@ jobs:
 
       - name: Extract release notes
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           chmod +x .github/scripts/get-release-notes.sh
-          .github/scripts/get-release-notes.sh "$VERSION" CHANGELOG.md > RELEASE_NOTES.md
+          .github/scripts/get-release-notes.sh "${{ needs.bump.outputs.next }}" CHANGELOG.md > RELEASE_NOTES.md
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "dist/EldenRingHandlerManager.zip" \
+          gh release create "v${{ needs.bump.outputs.next }}" "dist/EldenRingHandlerManager.zip" \
             --repo "${{ github.repository }}" \
-            --title "Elden Ring Handler Manager $GITHUB_REF_NAME" \
+            --title "Elden Ring Handler Manager v${{ needs.bump.outputs.next }}" \
             --notes-file RELEASE_NOTES.md
