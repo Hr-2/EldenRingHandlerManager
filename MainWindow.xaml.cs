@@ -51,6 +51,7 @@ namespace ERHandlerManager
             RestoreUiState();
             LoadLastProfile();
             RefreshModSizes();
+            ShowWhatsNewIfUpdated();
             _ = CheckForUpdateOnStartup();
         }
 
@@ -934,6 +935,40 @@ namespace ERHandlerManager
         }
 
         // ===================== Updates =====================
+
+        private void Changelog_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new ChangelogWindow { Owner = this };
+            dlg.ShowDialog();
+        }
+
+        /// <summary>
+        /// If the user just updated to a new version, show a "What's new" window
+        /// with the changelog sections that are newer than the last seen version.
+        /// </summary>
+        private void ShowWhatsNewIfUpdated()
+        {
+            var s = _settings.Settings;
+            if (string.IsNullOrEmpty(s.LastSeenVersion))
+            {
+                // First ever launch — just mark it as seen, no notification.
+                s.LastSeenVersion = AppInfo.Version;
+                _settings.Save();
+                return;
+            }
+
+            if (Version.TryParse(AppInfo.Version, out var current) &&
+                Version.TryParse(s.LastSeenVersion, out var last) && current > last)
+            {
+                Dispatcher.InvokeAsync(() =>
+                {
+                    var dlg = new ChangelogWindow(s.LastSeenVersion) { Owner = this };
+                    dlg.ShowDialog();
+                    s.LastSeenVersion = AppInfo.Version;
+                    _settings.Save();
+                });
+            }
+        }
 
         private async Task CheckForUpdateOnStartup()
         {

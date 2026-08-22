@@ -162,5 +162,6 @@ namespace ERHandlerManager.Models
         public int WindowHeight { get; set; }
         public bool WindowMaximized { get; set; }
         public bool SkipDeployConfirm { get; set; }
+        public string LastSeenVersion { get; set; } = "";
     }
 }

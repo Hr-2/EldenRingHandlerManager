@@ -132,6 +132,10 @@
                             Padding="10,6" Margin="0,10,0,0" Click="CheckForUpdate_Click">
                         <Button.ToolTip>Check for a new release on GitHub</Button.ToolTip>
                     </Button>
+                    <Button Content="Changelog" Style="{StaticResource GhostButton}"
+                            Padding="10,6" Margin="0,6,0,0" Click="Changelog_Click">
+                        <Button.ToolTip>See what changed in each release</Button.ToolTip>
+                    </Button>
                     <TextBlock x:Name="UpdateStatusText" Text="" Foreground="{StaticResource DimTextBrush}"
                                FontSize="9.5" TextWrapping="Wrap" Margin="2,6,0,0"/>
                     <TextBlock Text="Only touches the Nucleus handlers folder. No game path needed."

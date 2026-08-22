@@ -15,4 +15,8 @@
     <InformationalVersion>1.1.0</InformationalVersion>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="CHANGELOG.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

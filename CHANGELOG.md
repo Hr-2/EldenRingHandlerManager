@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.0] - 2026-08-22
 
 ### Added
+- In-app changelog viewer — see what changed in each release, and a "What's new" window appears automatically after updating.
 - Search box to filter mods by name.
 - Expand all / collapse all buttons for the mod tree.
 - Per-mod on-disk size shown in the mod list.
