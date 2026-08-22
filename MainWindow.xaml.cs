@@ -18,12 +18,24 @@ namespace ERHandlerManager
         private readonly ObservableCollection<ModEntry> _mods = new();
         private EngineType _activeEngineTab = EngineType.ME2;
         private bool _updating;
+        private readonly System.Windows.Threading.DispatcherTimer _saveDebounce = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(500)
+        };
 
         public MainWindow()
         {
             InitializeComponent();
             _settings = new SettingsService();
             _deploy = new DeployService(_settings);
+            _saveDebounce.Tick += (s, e) => { _saveDebounce.Stop(); FlushSettings(); };
+        }
+
+        private void FlushSettings()
+        {
+            SaveToSettings();
+            AutoSaveModsToProfile();
+            try { _settings.Save(); } catch (Exception ex) { Log("WARN: settings save failed: " + ex.Message); }
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -34,14 +46,17 @@ namespace ERHandlerManager
             LoadSettings();
             ChkAutoSave.IsChecked = _settings.Settings.AutoSaveMods;
             ChkAutoConfig.IsChecked = _settings.Settings.AutoConfig;
+            EnsureDefaultProfile();
             RefreshUI();
             RestoreUiState();
             LoadLastProfile();
+            RefreshModSizes();
             _ = CheckForUpdateOnStartup();
         }
 
         private void Window_Closed(object sender, EventArgs e)
         {
+            _saveDebounce.Stop();
             SaveToSettings();
             _settings.Save();
         }
@@ -88,8 +103,15 @@ namespace ERHandlerManager
 
         private void RebuildVisibleMods()
         {
-            var list = new ObservableCollection<ModEntry>(_mods.Where(ModFitsTab));
+            var query = TxtModSearch?.Text.Trim() ?? "";
+            var list = new ObservableCollection<ModEntry>(_mods.Where(m =>
+                ModFitsTab(m) && (query.Length == 0 || m.Name.Contains(query, StringComparison.OrdinalIgnoreCase))));
             ModList.ItemsSource = list;
+        }
+
+        private void TxtModSearch_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            RebuildVisibleMods();
         }
 
         private void EngineTab_Click(object sender, RoutedEventArgs e)
@@ -288,13 +310,15 @@ namespace ERHandlerManager
             s.WindowMaximized = WindowState == WindowState.Maximized;
         }
 
-        /// <summary>Saves settings and, if auto-save is on, updates the active profile.</summary>
+        /// <summary>Saves settings and, if auto-save is on, updates the active profile.
+        /// Writes are debounced so rapid changes don't hammer the disk.</summary>
         private void SaveMods()
         {
             SaveToSettings();
             AutoSaveModsToProfile();
-            _settings.Save();
             RefreshUI();
+            _saveDebounce.Stop();
+            _saveDebounce.Start();
         }
 
         // ===================== Mod operations =====================
@@ -304,8 +328,12 @@ namespace ERHandlerManager
             var dlg = new ModDialog();
             if (dlg.ShowDialog() == true)
             {
+                dlg.Result.Engine = _activeEngineTab;
+                CascadeEngine(dlg.Result);
+                dlg.Result.Name = UniqueModName(dlg.Result.Name, _activeEngineTab);
                 _mods.Add(dlg.Result);
                 SaveMods();
+                RefreshModSizes();
             }
         }
 
@@ -364,6 +392,23 @@ namespace ERHandlerManager
             }
         }
 
+        /// <summary>
+        /// Returns the given name, or a suffixed variant ("name (2)", "name (3)", …)
+        /// if another mod of the same engine already uses it. Deploy writes mods to
+        /// ModEngine\&lt;name&gt;, so distinct names prevent silent overwrites.
+        /// </summary>
+        private string UniqueModName(string name, EngineType engine)
+        {
+            var candidate = name;
+            int n = 2;
+            while (_mods.Any(m =>
+                m.Engine == engine && string.Equals(m.Name, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                candidate = $"{name} ({n++})";
+            }
+            return candidate;
+        }
+
         private static bool RemoveChild(ModEntry parent, ModEntry entry)
         {
             if (parent.Children.Remove(entry)) return true;
@@ -377,6 +422,59 @@ namespace ERHandlerManager
         private void ModList_DoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             EditMod_Click(sender, new RoutedEventArgs());
+        }
+
+        private void CopyToOtherEngine_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not System.Windows.Controls.MenuItem mi) return;
+            var entry = mi.DataContext as ModEntry;
+            if (entry == null) return;
+            var target = (string)mi.Tag == "ME2" ? EngineType.ME2 : EngineType.ME3;
+            if (entry.Engine == target) return; // already on that engine
+
+            var copy = CloneEntry(entry);
+            copy.Engine = target;
+            CascadeEngine(copy);
+            copy.Name = UniqueModName(copy.Name, target);
+            _mods.Add(copy);
+            SaveMods();
+            RefreshModSizes();
+        }
+
+        private void ExpandAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var m in _mods) SetExpanded(m, true);
+        }
+
+        private void CollapseAll_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (var m in _mods) SetExpanded(m, false);
+        }
+
+        private static void SetExpanded(ModEntry entry, bool expanded)
+        {
+            entry.IsExpanded = expanded;
+            foreach (var c in entry.Children) SetExpanded(c, expanded);
+        }
+
+        private void MoveModUp_Click(object sender, RoutedEventArgs e) => MoveMod(-1);
+
+        private void MoveModDown_Click(object sender, RoutedEventArgs e) => MoveMod(1);
+
+        /// <summary>Moves the selected root mod up/down in the load order.</summary>
+        private void MoveMod(int direction)
+        {
+            if (ModList.SelectedItem is not ModEntry selected) return;
+            var index = _mods.IndexOf(selected);
+            if (index < 0) return; // only root mods can be reordered
+            var target = index + direction;
+            if (target < 0 || target >= _mods.Count) return;
+            _mods.Move(index, target);
+            SaveMods();
+            // Re-select the moved item after the list rebuilds.
+            ModList.UpdateLayout();
+            var container = ModList.ItemContainerGenerator.ContainerFromItem(selected) as TreeViewItem;
+            if (container != null) container.IsSelected = true;
         }
 
         // ===================== Drag-drop onto mods list =====================
@@ -412,10 +510,12 @@ namespace ERHandlerManager
                     ModDetector.SanitizeName(Path.GetFileNameWithoutExtension(path)));
                 entry.Engine = _activeEngineTab;
                 CascadeEngine(entry);
+                entry.Name = UniqueModName(entry.Name, _activeEngineTab);
                 _mods.Add(entry);
             }
 
             SaveMods();
+            RefreshModSizes();
         }
 
         // ===================== Handlers / settings =====================
@@ -455,13 +555,16 @@ namespace ERHandlerManager
         private void DeployME2_Click(object sender, RoutedEventArgs e) => DeployWithEngine(EngineType.ME2);
         private void DeployME3_Click(object sender, RoutedEventArgs e) => DeployWithEngine(EngineType.ME3);
 
+        private System.Diagnostics.Stopwatch? _deployStopwatch;
+
         private async void DeployWithEngine(EngineType engine)
         {
             if (!_settings.Settings.SkipDeployConfirm)
             {
                 var dlg = new ConfirmDialog("Confirm deploy",
-                    $"This will overwrite the current \"Elden Ring\" handler in your Nucleus handlers folder " +
-                    $"and copy your enabled {engine} mods into it.\n\nContinue?");
+                    $"This will REPLACE the current \"Elden Ring\" handler in your Nucleus handlers folder " +
+                    $"with a fresh build from the {engine} template, then copy your enabled {engine} mods into it.\n\n" +
+                    "Nothing is backed up automatically — if you want to keep the current handler, use Backup first.\n\nContinue?");
                 dlg.Owner = this;
                 if (dlg.ShowDialog() != true) return;
                 if (dlg.DontAskAgain)
@@ -485,22 +588,32 @@ namespace ERHandlerManager
 
             _deployCts = new CancellationTokenSource();
             var token = _deployCts.Token;
+            _deployStopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
                 var result = await Task.Run(() =>
                     _deploy.Deploy(engine, (msg, pct, done, total) =>
                     {
+                        if (Dispatcher.HasShutdownStarted || !IsLoaded) return;
                         Dispatcher.Invoke(() =>
                         {
                             DeployProgress.Value = Math.Min(pct, 100);
-                            DeployProgressText.Text = FormatBytes(done) + " / " + FormatBytes(total);
+                            var eta = "";
+                            if (done > 0 && done < total && _deployStopwatch != null)
+                            {
+                                var elapsed = _deployStopwatch.Elapsed.TotalSeconds;
+                                var remaining = elapsed * ((double)(total - done) / done);
+                                eta = $"  ETA {FormatEta(remaining)}";
+                            }
+                            DeployProgressText.Text = FormatBytes(done) + " / " + FormatBytes(total) + eta;
                             int mb = (int)(done / (1024 * 1024));
                             int totalMb = Math.Max(1, (int)(total / (1024 * 1024)));
                             Log($"[{mb}/{totalMb} MB] {msg}");
                         });
                     }, token), token);
 
+                if (!IsLoaded) return;
                 foreach (var line in result.Log)
                     Log(line);
 
@@ -508,12 +621,14 @@ namespace ERHandlerManager
                     Log("SUCCESS: Deploy completed.");
                 else
                     Log("FAILED: See errors above.");
+                PersistDeployLog(result, $"Deploy {engine}");
             }
             catch (OperationCanceledException)
             {
-                Log("Deploy cancelled.");
+                if (IsLoaded) Log("Deploy cancelled.");
             }
 
+            if (!IsLoaded) return;
             CancelBtn.Visibility = Visibility.Collapsed;
             DeployME2Btn.IsEnabled = true;
             DeployME3Btn.IsEnabled = true;
@@ -534,10 +649,69 @@ namespace ERHandlerManager
             return $"{bytes / (1024.0 * 1024.0):F1} MB";
         }
 
+        private static string FormatEta(double seconds)
+        {
+            if (seconds < 0 || double.IsNaN(seconds) || double.IsInfinity(seconds)) return "…";
+            if (seconds < 60) return $"{Math.Ceiling(seconds)}s";
+            if (seconds < 3600) return $"{Math.Floor(seconds / 60)}m {Math.Ceiling(seconds % 60)}s";
+            return $"{Math.Floor(seconds / 3600)}h {Math.Floor((seconds % 3600) / 60)}m";
+        }
+
+        private static long DirSizeBytes(string dir)
+        {
+            long n = 0;
+            try
+            {
+                foreach (var f in Directory.GetFiles(dir)) n += new FileInfo(f).Length;
+                foreach (var d in Directory.GetDirectories(dir)) n += DirSizeBytes(d);
+            }
+            catch { }
+            return n;
+        }
+
+        private static long ModSizeBytes(ModEntry mod)
+        {
+            if (mod.Kind == ModKind.Dll && File.Exists(mod.SourcePath)) return new FileInfo(mod.SourcePath).Length;
+            if (Directory.Exists(mod.SourcePath)) return DirSizeBytes(mod.SourcePath);
+            return 0;
+        }
+
+        /// <summary>Computes each mod's on-disk size in the background and updates the list.</summary>
+        private async void RefreshModSizes()
+        {
+            foreach (var mod in _mods)
+            {
+                if (!IsLoaded) return;
+                var size = await Task.Run(() => ModSizeBytes(mod));
+                if (IsLoaded) mod.SizeLabel = FormatBytes(size);
+            }
+        }
+
         private void Log(string message)
         {
             LogBox.AppendText(message + Environment.NewLine);
             LogBox.ScrollToEnd();
+        }
+
+        private static readonly string DeployLogPath =
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "ERHandlerManager", "deploy.log");
+
+        /// <summary>Appends a completed deploy/backup log to disk for later debugging.</summary>
+        private static void PersistDeployLog(DeployResult result, string header)
+        {
+            try
+            {
+                var dir = System.IO.Path.GetDirectoryName(DeployLogPath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                System.Text.StringBuilder sb = new();
+                sb.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {header}");
+                foreach (var line in result.Log)
+                    sb.AppendLine("  " + line);
+                sb.AppendLine();
+                File.AppendAllText(DeployLogPath, sb.ToString());
+            }
+            catch { }
         }
 
         // ===================== Profiles =====================
@@ -548,6 +722,22 @@ namespace ERHandlerManager
             ProfileCombo.ItemsSource = _settings.Settings.Profiles.Select(p => p.Name).ToList();
             if (selected != null && ProfileCombo.Items.Contains(selected))
                 ProfileCombo.SelectedItem = selected;
+        }
+
+        /// <summary>Creates a "Default" profile if no profiles exist, and selects one.</summary>
+        private void EnsureDefaultProfile()
+        {
+            var s = _settings.Settings;
+            if (s.Profiles.Count == 0)
+            {
+                s.Profiles.Add(new NamedProfile { Name = "Default" });
+                s.LastProfile = "Default";
+                _settings.Save();
+            }
+            // Ensure the combo has a selection
+            RefreshProfileCombo();
+            if (ProfileCombo.SelectedItem == null && ProfileCombo.Items.Count > 0)
+                ProfileCombo.SelectedItem = ProfileCombo.Items[0];
         }
 
         private void LoadLastProfile()
@@ -605,6 +795,7 @@ namespace ERHandlerManager
             SaveToSettings();
             _settings.Save();
             RefreshUI();
+            RefreshModSizes();
         }
 
         private static void NormalizeModMarkers(ModEntry entry)
@@ -652,7 +843,64 @@ namespace ERHandlerManager
 
             _settings.Settings.Profiles.Remove(profile);
             _settings.Save();
-            RefreshProfileCombo();
+            EnsureDefaultProfile(); // never allow zero profiles
+            RefreshUI();
+        }
+
+        private void ProfileExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (ProfileCombo.SelectedItem is not string name) return;
+            var profile = _settings.Settings.Profiles.FirstOrDefault(p => p.Name == name);
+            if (profile == null) return;
+
+            var dlg = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Export profile",
+                Filter = "Profile files (*.json)|*.json",
+                FileName = name + ".json"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            var json = System.Text.Json.JsonSerializer.Serialize(profile,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            System.IO.File.WriteAllText(dlg.FileName, json);
+        }
+
+        private void ProfileImport_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Import profile",
+                Filter = "Profile files (*.json)|*.json"
+            };
+            if (dlg.ShowDialog() != true) return;
+
+            try
+            {
+                var json = System.IO.File.ReadAllText(dlg.FileName);
+                var profile = System.Text.Json.JsonSerializer.Deserialize<NamedProfile>(json);
+                if (profile == null || string.IsNullOrWhiteSpace(profile.Name))
+                    throw new InvalidOperationException("Not a valid profile file.");
+
+                var unique = profile.Name;
+                int n = 2;
+                while (_settings.Settings.Profiles.Any(p => p.Name == unique))
+                    unique = $"{profile.Name} ({n++})";
+                profile.Name = unique;
+
+                _settings.Settings.Profiles.Add(profile);
+                _settings.Save();
+                RefreshProfileCombo();
+                ProfileCombo.SelectedItem = unique;
+                _settings.Settings.LastProfile = unique;
+                _settings.Save();
+                LoadProfile(unique);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Couldn't import profile: {ex.Message}", "Import failed",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private string PromptForProfileName()
@@ -796,6 +1044,7 @@ namespace ERHandlerManager
             var result = await Task.Run(() => _deploy.Backup());
             foreach (var line in result.Log)
                 Log(line);
+            PersistDeployLog(result, "Backup");
             DeployME2Btn.IsEnabled = true;
             DeployME3Btn.IsEnabled = true;
             BackupBtn.IsEnabled = true;

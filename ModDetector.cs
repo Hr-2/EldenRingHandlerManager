@@ -99,15 +99,6 @@ namespace ERHandlerManager.Services
             }
         }
 
-        private static bool LooksLikeMod(string dir)
-        {
-            if (Directory.GetFiles(dir, "*.dll", SearchOption.TopDirectoryOnly).Length > 0) return true;
-            if (File.Exists(Path.Combine(dir, "regulation.bin"))) return true;
-            if (Directory.GetFiles(dir, "*.dcx", SearchOption.TopDirectoryOnly).Length > 0) return true;
-            if (Directory.GetDirectories(dir).Any(d => AssetDirs.Contains(Path.GetFileName(d)))) return true;
-            return false;
-        }
-
         public static IEnumerable<string> GetDllFiles(ModEntry mod)
         {
             if (mod.Kind == ModKind.Dll)
@@ -124,6 +115,49 @@ namespace ERHandlerManager.Services
             if (Directory.Exists(mod.SourcePath))
                 CollectDllsRecursive(mod.SourcePath, found);
             return found;
+        }
+
+        /// <summary>
+        /// Like GetDllFiles, but only for files that will actually be copied at
+        /// deploy time — disabled child folders are skipped, matching CopyModTree.
+        /// </summary>
+        public static IEnumerable<string> GetEnabledDllFiles(ModEntry mod)
+        {
+            if (mod.Kind == ModKind.Dll)
+            {
+                if (File.Exists(mod.SourcePath))
+                    return new[] { mod.SourcePath };
+                if (Directory.Exists(mod.SourcePath))
+                    return Directory.GetFiles(mod.SourcePath, "*.dll", SearchOption.TopDirectoryOnly);
+                return Enumerable.Empty<string>();
+            }
+
+            var found = new List<string>();
+            if (Directory.Exists(mod.SourcePath))
+                CollectEnabledDlls(mod, found);
+            return found;
+        }
+
+        private static void CollectEnabledDlls(ModEntry entry, List<string> found)
+        {
+            try
+            {
+                found.AddRange(Directory.GetFiles(entry.SourcePath, "*.dll", SearchOption.TopDirectoryOnly));
+                foreach (var sub in Directory.GetDirectories(entry.SourcePath))
+                {
+                    var name = Path.GetFileName(sub);
+                    if (JunkDirs.Contains(name)) continue;
+                    var child = entry.Children.FirstOrDefault(c =>
+                        c.Kind == ModKind.Folder && c.Name == name);
+                    if (child != null && !child.Enabled) continue; // disabled, not copied
+
+                    if (child != null && child.Children.Count > 0)
+                        CollectEnabledDlls(child, found);
+                    else
+                        CollectDllsRecursive(sub, found);
+                }
+            }
+            catch { }
         }
 
         private static void CollectDllsRecursive(string dir, List<string> found)
@@ -154,11 +188,6 @@ namespace ERHandlerManager.Services
             var folder = mod.SourcePath;
             var rel = Path.GetRelativePath(folder, dllPath);
             return rel.Replace(Path.DirectorySeparatorChar, '/');
-        }
-
-        public static int CountDlls(ModEntry mod)
-        {
-            return GetDllFiles(mod).Count();
         }
 
         /// <summary>

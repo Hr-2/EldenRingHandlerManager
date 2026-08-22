@@ -185,6 +185,12 @@
                                 VerticalAlignment="Center" Padding="10,4" Click="ProfileSave_Click"/>
                         <Button Content="Delete" Style="{StaticResource DangerButton}" Margin="4,0,0,0"
                                 VerticalAlignment="Center" Padding="10,4" Click="ProfileDelete_Click"/>
+                        <Button Content="Export" Style="{StaticResource GhostButton}" Margin="4,0,0,0"
+                                VerticalAlignment="Center" Padding="10,4" ToolTip="Save this profile to a file"
+                                Click="ProfileExport_Click"/>
+                        <Button Content="Import" Style="{StaticResource GhostButton}" Margin="4,0,0,0"
+                                VerticalAlignment="Center" Padding="10,4" ToolTip="Load a profile from a file"
+                                Click="ProfileImport_Click"/>
                         <CheckBox x:Name="ChkAutoSave" Content="Auto-save mods on change" Style="{StaticResource DarkCheckBox}"
                                   VerticalAlignment="Center" Margin="16,0,0,0"
                                   Checked="AutoSave_Toggled" Unchecked="AutoSave_Toggled"/>
@@ -202,6 +208,17 @@
                         <Button Content="+  Add mod" Style="{StaticResource PrimaryButton}" Click="AddMod_Click"/>
                         <Button Content="Edit" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Click="EditMod_Click"/>
                         <Button Content="Remove" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="RemoveMod_Click"/>
+                        <Button Content="&#x25B2;" Style="{StaticResource GhostButton}" Margin="6,0,0,0" Padding="10,4"
+                                ToolTip="Move mod up (earlier load order)" Click="MoveModUp_Click"/>
+                        <Button Content="&#x25BC;" Style="{StaticResource GhostButton}" Margin="4,0,0,0" Padding="10,4"
+                                ToolTip="Move mod down (later load order)" Click="MoveModDown_Click"/>
+                        <TextBox x:Name="TxtModSearch" Style="{StaticResource DarkTextBox}" Width="170"
+                                 Margin="14,0,0,0" VerticalAlignment="Center"
+                                 ToolTip="Filter mods by name" TextChanged="TxtModSearch_TextChanged"/>
+                        <Button Content="Expand all" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Padding="8,4"
+                                VerticalAlignment="Center" Click="ExpandAll_Click"/>
+                        <Button Content="Collapse all" Style="{StaticResource GhostButton}" Margin="4,0,0,0" Padding="8,4"
+                                VerticalAlignment="Center" Click="CollapseAll_Click"/>
                         <TextBlock Text="Drop folders or .dll files here to add them automatically."
                                    Foreground="{StaticResource DimTextBrush}" FontSize="10.5"
                                    VerticalAlignment="Center" Margin="14,0,0,0"/>
@@ -364,8 +381,14 @@
                                         </Grid>
                                     </Grid>
 
-                                    <!-- Name + tags -->
+                                    <!-- Right-click: copy mod to other engine -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <StackPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Copy to ME2" Tag="ME2" Click="CopyToOtherEngine_Click"/>
+                                            <MenuItem Header="Copy to ME3" Tag="ME3" Click="CopyToOtherEngine_Click"/>
+                                        </ContextMenu>
+                                    </StackPanel.ContextMenu>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="{Binding Name}" Foreground="White" FontSize="12" FontWeight="Medium"
                                                        TextTrimming="CharacterEllipsis"/>
@@ -440,8 +463,11 @@
                                             </Border>
                                         </StackPanel>
                                         <TextBlock Text="{Binding SourcePath}" Foreground="{StaticResource DimTextBrush}"
-                                                   FontSize="9" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                                   FontSize="9" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"
+                                                   ToolTip="{Binding SourcePath}"/>
                                         <TextBlock Text="{Binding DllInfo}" Foreground="{StaticResource SecondaryTextBrush}"
+                                                   FontSize="8.5" Margin="0,1,0,0"/>
+                                        <TextBlock Text="{Binding SizeLabel}" Foreground="{StaticResource AccentBrush}"
                                                    FontSize="8.5" Margin="0,1,0,0"/>
                                     </StackPanel>
 

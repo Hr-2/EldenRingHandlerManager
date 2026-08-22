@@ -70,8 +70,13 @@ namespace ERHandlerManager.Models
 
         public List<ModEntry> Children { get; set; } = new();
 
-        [System.Text.Json.Serialization.JsonIgnore]
-        public bool IsExpanded { get; set; } = false;
+        private bool _isExpanded = false;
+
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set { _isExpanded = value; OnPropertyChanged(); }
+        }
 
         [System.Text.Json.Serialization.JsonIgnore]
         public bool IsNested { get; set; } = false;
@@ -99,6 +104,15 @@ namespace ERHandlerManager.Models
         [System.Text.Json.Serialization.JsonIgnore]
         public string KindLabel => Kind == ModKind.Dll ? "DLL" : "Folder";
 
+        private string _sizeLabel = "";
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string SizeLabel
+        {
+            get => _sizeLabel;
+            set { _sizeLabel = value; OnPropertyChanged(); }
+        }
+
         [System.Text.Json.Serialization.JsonIgnore]
         public string DllInfo
         {
@@ -117,15 +131,6 @@ namespace ERHandlerManager.Models
             foreach (var c in entry.Children)
                 n += CountEnabledDlls(c);
             return n;
-        }
-
-        public static IEnumerable<ModEntry> FlattenEnabled(ModEntry entry)
-        {
-            if (!entry.Enabled) yield break;
-            yield return entry;
-            foreach (var c in entry.Children)
-                foreach (var d in FlattenEnabled(c))
-                    yield return d;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

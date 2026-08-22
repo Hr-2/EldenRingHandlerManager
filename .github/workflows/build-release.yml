@@ -34,10 +34,13 @@ jobs:
           OUT=$(python3 .github/scripts/bump-version.py)
           echo "$OUT"
           NEXT=$(echo "$OUT" | grep -oP 'NEXT=\K.*')
+          SKIP=$(echo "$OUT" | grep -oP 'SKIP=\K.*')
           echo "NEXT=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "SKIP=${SKIP:-0}" >> "$GITHUB_OUTPUT"
           echo "TAG=v$NEXT" >> "$GITHUB_OUTPUT"
 
       - name: Commit and push version bump + tag
+        if: steps.bump.outputs.SKIP == '0'
         run: |
           NEXT="${{ steps.bump.outputs.NEXT }}"
           git add -A
@@ -49,7 +52,7 @@ jobs:
   # ───── Build the tagged version (runs in the same run) ─────
   build:
     needs: [bump]
-    if: always() && needs.bump.result == 'success'
+    if: always() && needs.bump.result == 'success' && needs.bump.outputs.SKIP == '0'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -81,7 +84,7 @@ jobs:
   # ───── Publish versioned release ─────
   release:
     needs: [bump, build]
-    if: always() && needs.bump.result == 'success' && needs.build.result == 'success'
+    if: always() && needs.bump.result == 'success' && needs.bump.outputs.SKIP == '0' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

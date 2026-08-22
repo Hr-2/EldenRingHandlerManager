@@ -49,6 +49,8 @@ namespace ERHandlerManager.Services
 
             var handlersDir = s.NucleusHandlersDir;
             const string gameName = "Elden Ring";
+            var curJs = Path.Combine(handlersDir, gameName + ".js");
+            var curFolder = Path.Combine(handlersDir, gameName);
 
             try
             {
@@ -69,8 +71,6 @@ namespace ERHandlerManager.Services
                 long doneBytes = 0;
 
                 // --- 1. Deploy base handler (js + folder) ---
-                var curJs = Path.Combine(handlersDir, gameName + ".js");
-                var curFolder = Path.Combine(handlersDir, gameName);
                 var baseJs = Path.Combine(baseHandler, gameName + ".js");
                 var baseFolder = Path.Combine(baseHandler, gameName);
                 if (File.Exists(baseJs))
@@ -143,6 +143,18 @@ namespace ERHandlerManager.Services
             catch (OperationCanceledException)
             {
                 result.Log.Add("Deploy cancelled by user.");
+                // Remove the half-built handler so Nucleus doesn't try to run a
+                // partial build. A fresh deploy rebuilds it from the template.
+                try
+                {
+                    if (Directory.Exists(curFolder)) Directory.Delete(curFolder, true);
+                    if (File.Exists(curJs)) File.Delete(curJs);
+                    result.Log.Add("Partial handler removed.");
+                }
+                catch (Exception delEx)
+                {
+                    result.Log.Add($"WARNING: could not remove partial handler: {delEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -283,17 +295,6 @@ namespace ERHandlerManager.Services
 
         // ---------- Config generation (tree-aware) ----------
 
-        private static IEnumerable<(ModEntry entry, string relPath)> FlattenTree(ModEntry root, string prefix, EngineType engine)
-        {
-            if (!root.Enabled) yield break;
-            if (!Compatible(root, engine)) yield break;
-            if (!root.IsMod) yield break; // only mod-marked entries get configured
-            yield return (root, prefix);
-            foreach (var c in root.Children)
-                foreach (var item in FlattenTree(c, prefix + "/" + c.Name, engine))
-                    yield return item;
-        }
-
         private void WriteME2Config(string path, List<ModEntry> enabledMods)
         {
             // Only mod-marked entries get configured; unmarked ones are copied but not loaded.
@@ -314,13 +315,13 @@ namespace ERHandlerManager.Services
                 // Root DLL mod → <Name>/dll/<file>
                 if (root.Kind == ModKind.Dll)
                 {
-                    foreach (var f in ModDetector.GetDllFiles(root))
+                    foreach (var f in ModDetector.GetEnabledDllFiles(root))
                         dllEntries.Add($"{root.Name}//dll//{Path.GetFileName(f)}");
                     continue;
                 }
                 // Root folder mod → register only the top-level dlls and the
                 // flat "dll" subfolder dlls (never nested dll\X\X.dll duplicates).
-                foreach (var f in ModDetector.GetDllFiles(root))
+                foreach (var f in ModDetector.GetEnabledDllFiles(root))
                 {
                     var rel = ModDetector.RelativeDllPath(root, f).Replace("/", "//");
                     dllEntries.Add($"{root.Name}//{rel}");
@@ -378,7 +379,7 @@ namespace ERHandlerManager.Services
                 // Root DLL mod → Dlls/<Name>/<file>
                 if (root.Kind == ModKind.Dll)
                 {
-                    foreach (var f in ModDetector.GetDllFiles(root))
+                    foreach (var f in ModDetector.GetEnabledDllFiles(root))
                     {
                         sb.AppendLine();
                         sb.AppendLine("[[natives]]");
@@ -389,7 +390,7 @@ namespace ERHandlerManager.Services
                 }
                 // Root folder mod → register only the top-level dlls and the
                 // flat "dll" subfolder dlls (never nested dll\X\X.dll duplicates).
-                foreach (var f in ModDetector.GetDllFiles(root))
+                foreach (var f in ModDetector.GetEnabledDllFiles(root))
                 {
                     var rel = ModDetector.RelativeDllPath(root, f);
                     sb.AppendLine();

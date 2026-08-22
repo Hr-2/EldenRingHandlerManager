@@ -7,30 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.10] - 2026-08-21
+## [1.1.0] - 2026-08-22
+
+### Added
+- Search box to filter mods by name.
+- Expand all / collapse all buttons for the mod tree.
+- Per-mod on-disk size shown in the mod list.
+- Right-click a mod to copy it to the other engine (ME2 &harr; ME3).
+- Import and export profiles as `.json` files.
+- Deploy ETA shown next to the progress bar.
+- Deploy and backup logs are now written to `%APPDATA%\ERHandlerManager\deploy.log`.
+- A default profile is created automatically, so there is always at least one profile.
 
 ### Changed
-- Update README.md
+- "+ Add mod" now uses the active engine tab instead of always creating ME3 mods.
+- Duplicate mod names get an automatic suffix (e.g. `Mod (2)`) instead of silently overwriting the deployed folder.
+- Generated config files only reference DLLs that will actually be copied (disabled subfolders are excluded).
+- The deploy confirm dialog now clearly warns that the current handler is replaced and not backed up.
+- Cancelling a deploy removes the partial handler so Nucleus never runs a broken build.
+- Mod load order can now be adjusted with the move up/down buttons.
+- Expanded/collapsed tree state is saved and restored between sessions.
+- Settings saves are debounced to avoid writing to disk on every toggle.
+- Full mod path shown as a tooltip when it is truncated.
+- Window, page, and engine-tab state are remembered between sessions.
+- Safer settings file writes (temp file + swap) so a crash can't corrupt your mods.
 
-## [1.0.9] - 2026-08-21
-
-### Changed
-- chore: use version-only release titles
+### Fixed
+- Closing the window during a deploy no longer crashes.
+- Removed unused code.
 
 ## [1.0.8] - 2026-08-21
 
 ### Changed
-- Add quality-of-life improvements: safe names, accurate deploy progress, atomic settings save, UI state persistence, deploy confirm, open deployed folder
+- Add quality-of-life improvements: safe names, accurate deploy progress, atomic settings save, UI state persistence, deploy confirm, open deployed folder.
 
 ## [1.0.7] - 2026-08-21
 
 ### Changed
-- Add auto-update feature (check GitHub releases, download, apply via batch helper)
-
-## [1.0.6] - 2026-08-21
-
-### Changed
-- Resolve merge conflict in changelog
+- Add auto-update feature (check GitHub releases, download, apply via batch helper).
 
 ## [1.0.5] - 2026-08-21
 
@@ -39,32 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Open the Nucleus handlers folder in Explorer from the Handlers page.
 
 ### Changed
-- Restore README emojis and polish
+- Restore README emojis and polish.
 
 ### Fixed
 - Corrected changelog wording: enabling a mod on one tab disables mods on the other tab (not "engine").
-
-## [1.0.4] - 2026-08-21
-
-### Changed
-- Clean up README: remove dashes, use 'I' not 'We'
-
-## [1.0.3] - 2026-08-21
-
-### Changed
-- Fix release job dependency on bump outputs
-
-## [1.0.2] - 2026-08-21
-
-### Changed
-- Restructure workflow: bump + build + release in one run
-
-## [1.0.1] - 2026-08-21
-
-### Changed
-- Auto version bump workflow, improved README
-- Add AI disclosure note to README
-- Bump upload-artifact to latest v7.0.1
 
 ## [1.0.0] - 2026-08-21
 
@@ -79,4 +71,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Custom handler `.js` override per mod (e.g. Elden Vins).
 - Background deploy with live progress bar, byte counter, and cancel support.
 - Manual backup of the current deployed handler.
-- GitHub Actions CI: auto-build and publish a "Latest build" release on every push.
+- GitHub Actions CI: auto-build and publish a release on every code push.
