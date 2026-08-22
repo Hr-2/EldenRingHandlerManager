@@ -33,8 +33,8 @@ jobs:
         run: |
           OUT=$(python3 .github/scripts/bump-version.py)
           echo "$OUT"
-          NEXT=$(echo "$OUT" | grep -oP 'NEXT=\K.*')
-          SKIP=$(echo "$OUT" | grep -oP 'SKIP=\K.*')
+          NEXT=$(echo "$OUT" | grep -oP 'NEXT=\K.*' || true)
+          SKIP=$(echo "$OUT" | grep -oP 'SKIP=\K.*' || true)
           echo "NEXT=$NEXT" >> "$GITHUB_OUTPUT"
           echo "SKIP=${SKIP:-0}" >> "$GITHUB_OUTPUT"
           echo "TAG=v$NEXT" >> "$GITHUB_OUTPUT"
