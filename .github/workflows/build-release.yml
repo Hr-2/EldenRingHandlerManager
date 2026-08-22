@@ -44,7 +44,11 @@ jobs:
         run: |
           NEXT="${{ steps.bump.outputs.NEXT }}"
           git add -A
-          git commit -m "chore(release): v$NEXT"
+          if git diff --cached --quiet; then
+            echo "No file changes (version and changelog already set)."
+          else
+            git commit -m "chore(release): v$NEXT"
+          fi
           git tag "v$NEXT"
           git push origin master
           git push origin "v$NEXT"
